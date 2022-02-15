@@ -75,16 +75,8 @@ def process_test_case(total_num_clients, clients_preferences, ingredients, total
     
     total_num_ingredients = len(ingredients)
 
-    # total_num_combos = 0
-    combo_counter = 0
-    # for num_choose in range(1, total_num_ingredients+1):
-    #     combos = list(combinations(ingredients, num_choose))
-    #     total_num_combos += len(combos)
-    # print(f'{total_num_combos=}')
-
-
     # Generate and evaluate every combo
-    
+    combo_counter = 0
     for num_choose in range(1, total_num_ingredients+1):
         combos = list(combinations(ingredients, num_choose))
         # Eg. combo = ('pineapple', 'basil', 'cheese', 'peppers')
@@ -93,8 +85,8 @@ def process_test_case(total_num_clients, clients_preferences, ingredients, total
 
             # Counter to help us keep track of how fast we're progressing
             combo_counter += 1
-            if combo_counter % 1000 == 1:
-                print(f'Evaluating combo # {combo_counter}/{total_num_combos} ({trunc((combo_counter/total_num_combos)*100)}%)')
+            if (combo_counter % 1000) == 1:
+                print(f'Evaluating combo #{combo_counter}/{total_num_combos} ({trunc((combo_counter/total_num_combos)*100)}%)')
             
             num_clients = evaluate_combo(combo, clients_preferences, total_num_clients, max_num_clients)
             #print(f'Num clients for this combo: {num_clients}\n')
@@ -144,27 +136,28 @@ with open(input_file, encoding='utf8') as f:
 #pprint(f'{clients_preferences=}')
 print(f'{ingredients=}\n')
 
-# Number of combinations equals: n!/(n-r)!r!
+# Number of combinations (choosing r items out of n items): n!/((n-r)!r!)
 total_num_combos = 0
-num_of_ingredients = len(ingredients)
-for i in range(1, num_of_ingredients + 1):
-    total_num_combos += factorial(num_of_ingredients) / (factorial(num_of_ingredients - i) * factorial(i))
+total_num_ingredients = len(ingredients)
+for i in range(1, total_num_ingredients + 1):
+    total_num_combos += factorial(total_num_ingredients) / (factorial(total_num_ingredients - i) * factorial(i))
 print(f'{total_num_combos=}')
 
 max_combo, max_num_clients = process_test_case(total_num_clients, clients_preferences, ingredients, total_num_combos)
 max_combo = sorted(max_combo)
+
+# Write more intuitive output for our debugging
+print(f'{max_num_clients=}')
+print(f'{max_combo=}')
+
+# Write official, unintuitive output format to file
 output_elements = []
 output_elements.append(str(len(max_combo)))
 output_elements.extend(list(max_combo))
 output_str = ' '.join(output_elements)
 # print(output_str)
-print(f'{max_num_clients=}')
-print(f'{max_combo=}')
-
-# Write submission to file
 output_folder = Path('submissions')
 output_folder.mkdir(parents=True, exist_ok=True)
 output_file = output_folder/input_file_path.name
-
 with output_file.open('w+') as f:
     f.write(output_str)
