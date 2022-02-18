@@ -2,7 +2,11 @@
 # Authors: Pranav Marla and Nick Quinn
 # Description: Program to solve Google's Hash Code 2022 'Pizza' practice problem: https://codingcompetitions.withgoogle.com/hashcode/round/00000000008f5ca9/00000000008f6f33#problem
 #
-# Currently, this brute force solution (containing some minor optimizations) is too slow to evaluate the last two test cases ('d' and 'e')
+# Strategies
+#   - Brute Force
+#   - Binary Search Tree
+# 
+#  Synopsis: Currently, this brute force solution (containing some minor optimizations) is too slow to evaluate the last two test cases ('d' and 'e')
 
 from itertools import combinations
 from math import factorial, trunc
@@ -102,6 +106,7 @@ def process_test_case(total_num_clients, clients_preferences, ingredients, total
 
     return max_combo, max_num_clients
 
+# Represents the binary tree data structure used for the binary search tree algorithm
 class Node:
     def __init__(self, data):
         self.left = None
@@ -124,11 +129,11 @@ class Node:
 def process_test_case_with_binary_tree(clients_preferences, ingredients):
     max_combo = []
     max_num_clients = 0
-    
+    total_clients = len(clients_preferences)
     # Initialize Tree
     root = Node(0)
 
-    for client in clients_preferences:
+    for c_num, client in enumerate(clients_preferences):
         #print(f'\n client start')
         #print(client)
 
@@ -144,6 +149,7 @@ def process_test_case_with_binary_tree(clients_preferences, ingredients):
                 new_client = client.copy()
                 new_client[i] = 0
                 clients_preferences.append(new_client)
+                total_clients += 1
                 #print("Ingredient Does Not Exist, Creating New Client:")
                 #print(new_client)
             else:
@@ -162,6 +168,10 @@ def process_test_case_with_binary_tree(clients_preferences, ingredients):
         if current_node.data > max_num_clients:
             max_num_clients = current_node.data
             max_combo = client
+
+        # Print Progress
+        if c_num % 100 == 1:
+            print(f'Evaluating clients #{c_num}/{total_clients} ({trunc((c_num/total_clients)*100)}%)')
     
     # Since max_combo is dictionary, we need to convert to list
     combo = []
