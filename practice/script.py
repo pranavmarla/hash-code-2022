@@ -102,62 +102,175 @@ def process_test_case(total_num_clients, clients_preferences, ingredients, total
 
     return max_combo, max_num_clients
 
-# Execution
+class Node:
+    def __init__(self, data):
+        self.left = None
+        self.right = None
+        self.data = data
 
+    def get_next_node(self, right=False, left=False):
+        if right is True:
+            if self.right is None:
+                self.right = Node(0)
+            return self.right
+        elif left is True:
+            if self.left is None:
+                self.left = Node(0)
+            return self.left
+        else:
+            print("Left or Right Node was not specified in function call.")
+            raise
+
+def process_test_case_with_binary_tree(clients_preferences, ingredients):
+    max_combo = []
+    max_num_clients = 0
+    
+    # Initialize Tree
+    root = Node(0)
+
+    for client in clients_preferences:
+        #print(f'\n client start')
+        #print(client)
+
+        current_node = root
+        for i in ingredients:
+            #print(f"{i=}")
+            # If Client has no preference on ingredient
+            if i not in client:
+                # Assume this version of the client likes the ingredient, and create a duplicate
+                # client that dislikes this ingredient
+                current_node = current_node.get_next_node(right=True)
+                client[i] = 1
+                new_client = client.copy()
+                new_client[i] = 0
+                clients_preferences.append(new_client)
+                #print("Ingredient Does Not Exist, Creating New Client:")
+                #print(new_client)
+            else:
+                # If Client Likes Ingredient
+                if client[i] == 1:
+                    current_node = current_node.get_next_node(right=True)
+                    #print("Client Likes Ingredient")
+
+                # If Client Dislikes Ingredient
+                if client[i] == 0:
+                    current_node = current_node.get_next_node(left=True)
+                    #print("Client Disklikes Ingredient")
+
+        # Current node is currently leaf node. Now get value after incrementing for current customer and see if current combo is best
+        current_node.data += 1
+        if current_node.data > max_num_clients:
+            max_num_clients = current_node.data
+            max_combo = client
+    
+    # Since max_combo is dictionary, we need to convert to list
+    combo = []
+    for key in max_combo:
+        # Only add ingredient if they like it
+        if max_combo[key] == 1:
+            combo.append(key)
+    max_combo = combo
+        
+    return max_combo, max_num_clients
+
+# Execution
 input_file = sys.argv[1]
+global input_file_path 
 input_file_path = Path(input_file)
 
-# client_preferences = \
-# [
-#     {
-#         'likes': [],
-#         'dislikes': []
-#     },
-#     {
-#         'likes': [],
-#         'dislikes': []
-#     },
-# ]
-clients_preferences = []
-ingredients = set()
-
-with open(input_file, encoding='utf8') as f:
-    line = f.readline()
-    total_num_clients = int(line)
-    
-    for i in range(total_num_clients):
-        new_client = {'likes': [], 'dislikes': []}
-        new_client['likes'] = f.readline().split()[1:]
-        new_client['dislikes'] = f.readline().split()[1:]
-        clients_preferences.append(new_client)
-
-        ingredients.update(set(new_client['likes']), new_client['dislikes'])
-
-#pprint(f'{clients_preferences=}')
-print(f'{ingredients=}\n')
-
 # Number of combinations (choosing r items out of n items): n!/((n-r)!r!)
-total_num_combos = 0
-total_num_ingredients = len(ingredients)
-for i in range(1, total_num_ingredients + 1):
-    total_num_combos += factorial(total_num_ingredients) / (factorial(total_num_ingredients - i) * factorial(i))
-print(f'{total_num_combos=}')
+def find_total_num_combos(ingredients):
+    total_num_combos = 0
+    total_num_ingredients = len(ingredients)
+    for i in range(1, total_num_ingredients + 1):
+        total_num_combos += factorial(total_num_ingredients) / (factorial(total_num_ingredients - i) * factorial(i))
+    print(f'{total_num_combos=}')
+    return total_num_combos
 
-max_combo, max_num_clients = process_test_case(total_num_clients, clients_preferences, ingredients, total_num_combos)
-max_combo = sorted(max_combo)
+# Print final results and write result to file
+def print_results(max_combo, max_num_clients, strategy):
+    max_combo = sorted(max_combo)
+    global input_file_path
 
-# Write more intuitive output for our debugging
-print(f'{max_num_clients=}')
-print(f'{max_combo=}')
+    # Write more intuitive output for our debugging
+    print(f'{strategy=}')
+    print(f'{max_num_clients=}')
+    print(f'{sorted(max_combo)=}\n')
 
-# Write official, unintuitive output format to file
-output_elements = []
-output_elements.append(str(len(max_combo)))
-output_elements.extend(list(max_combo))
-output_str = ' '.join(output_elements)
-# print(output_str)
-output_folder = Path('submissions')
-output_folder.mkdir(parents=True, exist_ok=True)
-output_file = output_folder/input_file_path.name
-with output_file.open('w+') as f:
-    f.write(output_str)
+    # Write official, unintuitive output format to file
+    output_elements = []
+    output_elements.append(str(len(max_combo)))
+    output_elements.extend(list(max_combo))
+    output_str = ' '.join(output_elements)
+    # print(output_str)
+    output_folder = Path(f'submissions\\{strategy}')
+    output_folder.mkdir(parents=True, exist_ok=True)
+    output_file = output_folder/(input_file_path.name)
+    with output_file.open('w+') as f:
+        f.write(output_str)
+
+# Strategy Flags
+brute_force_stratey = True
+binary_tree_strategy = True
+
+if brute_force_stratey:
+    # client_preferences = \
+    # [
+    #     {
+    #         'likes': [],
+    #         'dislikes': []
+    #     },
+    #     {
+    #         'likes': [],
+    #         'dislikes': []
+    #     },
+    # ]
+    clients_preferences = []
+    ingredients = set()
+
+    #pprint(f'{clients_preferences=}')
+    with open(input_file, encoding='utf8') as f:
+        line = f.readline()
+        total_num_clients = int(line)
+        
+        for i in range(total_num_clients):
+            new_client = {'likes': [], 'dislikes': []}
+            new_client['likes'] = f.readline().split()[1:]
+            new_client['dislikes'] = f.readline().split()[1:]
+            clients_preferences.append(new_client)
+
+            ingredients.update(set(new_client['likes']), new_client['dislikes'])
+
+    total_num_combos= find_total_num_combos(ingredients)
+    max_combo, max_num_clients = process_test_case(total_num_clients, clients_preferences, ingredients, total_num_combos)
+    print_results(max_combo, max_num_clients, "brute_force")
+
+if binary_tree_strategy:
+    clients_preferences = []
+    ingredients = set()
+
+    with open(input_file, encoding='utf8') as f:
+        line = f.readline()
+        total_num_clients = int(line)
+        
+        for i in range(total_num_clients):
+            new_client = {}
+
+            # Go through each liked and disliked ingredient, and add to customer preference.
+            # Like = 1, Dislike = 0
+            liked_ingredients = f.readline().split()[1:]
+            for like in liked_ingredients:
+                new_client[like] = 1
+            disliked_ingredients = f.readline().split()[1:]
+            for dislike in disliked_ingredients:
+                new_client[dislike] = 0
+            
+            clients_preferences.append(new_client)
+            ingredients.update(set(liked_ingredients), disliked_ingredients)
+
+    # Sort Ingredients Lexographically
+    ingredients = sorted(ingredients)
+
+    # Find best combination with clients and ingredients
+    max_combo, max_num_clients = process_test_case_with_binary_tree(clients_preferences, ingredients)
+    print_results(max_combo, max_num_clients, "binary_tree")
