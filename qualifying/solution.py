@@ -49,7 +49,7 @@ class Person:
         # Return skill level or assume skill is zero if missing
         return self.skills.get(skill_name, 0)
 
-    #! TODO: Implement some comparison for when people in heap have same skill level, etc.
+    # When two people in heap have same skill level (first element of each tuple), heap will move on to second element of each tuple , which is the Person object itself. Thus, heap needs a way to do the "<" operation for two Person objects to decide which is "lesser" -- currently, we just pick the first one.
     def __lt__(self, other):
         return True
 
@@ -64,18 +64,11 @@ class Project:
         self.skills = skills
         self.assigned_workers = []
     
-    def calculate_score(self):
-        #! TODO: For some reason, heap doesn't like negative numbers apparently
-        # print(f'{self.score=}')
-        # print(f'{self.duration=}')
-        heap_score = -1 * (self.score / self.duration)
-        # heap_score = (self.score / self.duration)
-        # print(f'{heap_score=}')
-        return heap_score
-        # return -1 * (self.score / self.duration)
-        # return int(-1 * (self.score / self.duration))
-
-    #! TODO: Implement some comparison for when projects in heap have same value, deadline, etc.
+    def calculate_value(self):
+        # We define value of a project as its 'score' divided by its duration. However, we want the heap to give us the project with the max value, but Python's implementation is a min heap -- thus, make the value negative to force it to effectively behave like a max heap.
+        return -1 * (self.score / self.duration)
+    
+    # When two projects in heap have same value, deadline, etc., currently we just pick the first poject and tell heap that is the "lesser" one
     def __lt__(self, other):
         return True
 
@@ -158,7 +151,7 @@ def assign_to_project(project, skill_heap_tree):
 def sort_projects(projects):
     sorted_projects = []
     for project in projects:
-        heapq.heappush(sorted_projects, (project.calculate_score(), project.best_before, project))
+        heapq.heappush(sorted_projects, (project.calculate_value(), project.best_before, project))
     return sorted_projects
 
 
