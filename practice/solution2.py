@@ -3,7 +3,7 @@
 # Description: Program to solve Google's Hash Code 2022 'Pizza' practice problem: https://codingcompetitions.withgoogle.com/hashcode/round/00000000008f5ca9/00000000008f6f33#problem
 #
 # Strategies
-#   - Brute Force
+#   - Brute Force (from solution1.py)
 #   - Binary Search Tree
 # 
 #  Synopsis: Currently, this brute force solution (containing some minor optimizations) is too slow to evaluate the last two test cases ('d' and 'e')
