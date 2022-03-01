@@ -156,7 +156,7 @@ output_elements.append(str(len(max_combo)))
 output_elements.extend(list(max_combo))
 output_str = ' '.join(output_elements)
 # print(output_str)
-output_folder = Path('submissions')
+output_folder = Path('outputs/solution1')
 output_folder.mkdir(parents=True, exist_ok=True)
 output_file = output_folder/input_file_path.name
 with output_file.open('w+') as f:
