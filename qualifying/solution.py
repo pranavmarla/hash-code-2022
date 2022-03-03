@@ -28,7 +28,6 @@ for skill in project
 
 '''
 
-
 import heapq
 from pathlib import Path
 import sys
@@ -60,7 +59,7 @@ class Project:
         self.score = score
         self.best_before = best_before
         self.num_of_roles = num_of_roles
-        # {'C++': required_level}
+        # [('C++', required_level), ...]
         self.skills = skills
         self.assigned_workers = []
     
@@ -72,51 +71,51 @@ class Project:
     def __lt__(self, other):
         return True
 
+# Iterative function to find min person
+def find_min_person(available_people, required_skill_level, people_not_in_heap, skill_name):
+
+    if skill_name not in people_not_in_heap:
+        people_not_in_heap[skill_name] = []
+
+    while len(available_people) != 0:
+        # Pop lowest skilled worker, and check if their skill meets requirements.
+        min_person = heapq.heappop(available_people)[1]
+        people_not_in_heap[skill_name].append(min_person)
+
+        if (min_person.get_skill_level(skill_name) >= required_skill_level) and not next((p for p, d in all_assigned_workers if p == min_person), False):
+            return min_person, people_not_in_heap, available_people
+    
+    return None, people_not_in_heap, available_people
+
+# Check if mentor is available for this skill
+def check_for_mentor(assigned_workers, skill_name, required_skill_level):
+    for w in assigned_workers:
+        if w.get_skill_level(skill_name) >= required_skill_level:
+            return True
+    return False
+
+# Reinsert People back into heap
+def reinsert_people_back_in_heap(project, skill_heap_tree, people_not_in_heap):
+    for skill_name, required_skill_level in project.skills:
+        if skill_name in people_not_in_heap:
+            for person in people_not_in_heap[skill_name]:
+                heapq.heappush(skill_heap_tree[skill_name], (person.get_skill_level(skill_name), person))
+
+    return skill_heap_tree, people_not_in_heap
+
 def assign_to_project(project, skill_heap_tree):
 
-    people_not_in_heap = {}
-
     # Eg. people_not_in_heap = {'C++': [Person1, Person2]}
-
+    people_not_in_heap = {}
     assigned_workers = []
     project_fully_scheduled = True
     global all_assigned_workers
     global day
 
-    for skill_name in project.skills:
+    for skill_name, required_skill_level in project.skills:
         # Get heap tree for skill
         available_people = skill_heap_tree[skill_name]
-        required_skill_level = project.skills[skill_name]
         
-        # Recursive function to find min person
-        def find_min_person(available_people, required_skill_level, people_not_in_heap, skill_name):
-            # Return None if no person exists to satisfy role
-            if len(available_people) == 0:
-                return None, people_not_in_heap, available_people
-            
-            # Pop lowest skilled worker, and check if their skill meets requirements. If yes, then return
-            # min person, otherwise, make a recursive call to find next min person
-            min_person = heapq.heappop(available_people)[1]
-            if skill_name not in people_not_in_heap:
-                    people_not_in_heap[skill_name] = []
-            people_not_in_heap[skill_name].append(min_person)
-
-            if (min_person.get_skill_level(skill_name) >= required_skill_level):
-                # TODO: Had to check for tuple instead
-                for w in all_assigned_workers:
-                    if min_person == w[0]:
-                        return find_min_person(available_people, required_skill_level, people_not_in_heap, skill_name)
-                return min_person, people_not_in_heap, available_people
-            else:
-                return find_min_person(available_people, required_skill_level, people_not_in_heap, skill_name)
-
-        # Check if mentor is available for this skill
-        def check_for_mentor(assigned_workers, skill_name, required_skill_level):
-            for w in assigned_workers:
-                if w.get_skill_level(skill_name) >= required_skill_level:
-                    return True
-            return False
-
         # If mentor available, then lower skill level by one
         if check_for_mentor(assigned_workers, skill_name, required_skill_level):
             min_person, people_not_in_heap, available_people = find_min_person(available_people, required_skill_level - 1, people_not_in_heap, skill_name)
@@ -124,23 +123,13 @@ def assign_to_project(project, skill_heap_tree):
             min_person, people_not_in_heap, available_people = find_min_person(available_people, required_skill_level, people_not_in_heap, skill_name)
 
         if min_person is None:
-            # print(f"WARNING: Unable to find worker for project {project.name} and skill {skill_name}!")
             project_fully_scheduled = False
-
-            # Reinsert the people not in heap
-            for skill_name in project.skills:
-                if skill_name in people_not_in_heap:
-                    for person in people_not_in_heap[skill_name]:
-                        heapq.heappush(skill_heap_tree[skill_name], (person.get_skill_level(skill_name), person))
+            skill_heap_tree, people_not_in_heap = reinsert_people_back_in_heap(project, skill_heap_tree, people_not_in_heap)
             return [], project_fully_scheduled
         
         assigned_workers.append(min_person)
     
-    # Reinsert the people not in heap
-    for skill_name in project.skills:
-        for person in people_not_in_heap[skill_name]:
-            heapq.heappush(skill_heap_tree[skill_name], (person.get_skill_level(skill_name), person))
-
+    skill_heap_tree, people_not_in_heap = reinsert_people_back_in_heap(project, skill_heap_tree, people_not_in_heap)
     for w in assigned_workers:
         all_assigned_workers.append((w, project.duration + day))
     
@@ -187,32 +176,32 @@ def output(input_file, num_of_fully_scheduled_projects, fully_scheduled_projects
 # Main Driver function
 # TODO Increment Skill if mentored
 def main(num_people, num_projects, people, projects, skill_heap_tree_dict, input_file):
-    projects = sort_projects(projects)
-    num_of_fully_scheduled_projects = 0
     global day
     global all_assigned_workers
+    # Projects => [(Project Value, Project Duration, Project Class Object)]
+    projects = sort_projects(projects)
     fully_scheduled_projects = []
     
-    while (num_of_fully_scheduled_projects < num_projects) and day < 100:
+    while (len(fully_scheduled_projects) < num_projects) and day < 100:
         not_fully_scheduled_projects = []
         for project in projects:
             project = project[2]
             assigned_workers, project_fully_scheduled = assign_to_project(project, skill_heap_tree_dict)
             project.assigned_workers = assigned_workers
             if project_fully_scheduled:
-                num_of_fully_scheduled_projects += 1
                 fully_scheduled_projects.append(project)
             else:
                 not_fully_scheduled_projects.append(project)
 
         projects = sort_projects(not_fully_scheduled_projects)
         day += 1
+        print(f'{day=}')
 
         for w in all_assigned_workers:
             if w[1] == day:
                 all_assigned_workers.remove(w)
                 
-    output(input_file, num_of_fully_scheduled_projects, fully_scheduled_projects)
+    output(input_file, len(fully_scheduled_projects), fully_scheduled_projects)
 
 if __name__ == "__main__":
     # Read input data
@@ -237,12 +226,14 @@ if __name__ == "__main__":
         for i in range(num_projects):
             name, duration_str, score_str, best_before_str, num_roles_str = f.readline().split()
             duration, score, best_before, num_roles = int(duration_str), int(score_str), int(best_before_str), int(num_roles_str)
-            skills_dict = {}
+            skills_list = []
             for i in range(num_roles):
                 skill_name, required_skill_level_str = f.readline().split()
                 required_skill_level = int(required_skill_level_str)
-                skills_dict[skill_name] = required_skill_level
-            projects.append(Project(name, duration, score, best_before, num_roles, skills_dict))
+                # E.g. [('skill_name', required_level), ...]
+                skills_list.append((skill_name, required_skill_level))
+                
+            projects.append(Project(name, duration, score, best_before, num_roles, skills_list))
 
         skill_heap_tree_dict = make_skill_heap_tree_dict(people)
 
